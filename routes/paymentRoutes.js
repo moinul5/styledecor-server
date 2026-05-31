@@ -46,10 +46,22 @@ router.post('/', verifyToken, async (req, res) => {
   }
 });
 
-// GET /payments - Get payment history
-router.get('/', verifyToken, async (req, res) => {
-  // TODO: Implement get payments
-  res.json({ message: 'GET payments - not yet implemented' });
+// GET /payments/:email - Get payment history for a user
+router.get('/:email', verifyToken, async (req, res) => {
+  try {
+    const { email } = req.params;
+    
+    if (email !== req.decoded.email) {
+      return res.status(403).json({ message: 'Forbidden access' });
+    }
+
+    const payments = await Payment.find({ paidBy: email })
+                                  .populate('bookingId')
+                                  .sort({ paidAt: -1 });
+    res.json(payments);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching payments', error: error.message });
+  }
 });
 
 module.exports = router;
