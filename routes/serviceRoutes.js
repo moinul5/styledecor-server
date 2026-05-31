@@ -86,20 +86,50 @@ router.get('/:id', async (req, res) => {
 
 // POST /services - Add a new service (admin only)
 router.post('/', verifyToken, verifyAdmin, async (req, res) => {
-  // TODO: Implement create service
-  res.json({ message: 'POST create service - not yet implemented' });
+  try {
+    const newService = new Service(req.body);
+    const result = await newService.save();
+    res.status(201).json(result);
+  } catch (error) {
+    console.error('Error creating service:', error);
+    res.status(500).json({ message: 'Internal Server Error', error: error.message });
+  }
 });
 
 // PATCH /services/:id - Update a service (admin only)
 router.patch('/:id', verifyToken, verifyAdmin, async (req, res) => {
-  // TODO: Implement update service
-  res.json({ message: 'PATCH update service - not yet implemented' });
+  try {
+    const id = req.params.id;
+    const updatedService = await Service.findByIdAndUpdate(id, req.body, { new: true });
+    if (!updatedService) {
+      return res.status(404).json({ message: 'Service not found' });
+    }
+    res.json(updatedService);
+  } catch (error) {
+    console.error('Error updating service:', error);
+    if (error.name === 'CastError') {
+      return res.status(400).json({ message: 'Invalid service ID' });
+    }
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
 });
 
 // DELETE /services/:id - Delete a service (admin only)
 router.delete('/:id', verifyToken, verifyAdmin, async (req, res) => {
-  // TODO: Implement delete service
-  res.json({ message: 'DELETE service - not yet implemented' });
+  try {
+    const id = req.params.id;
+    const deletedService = await Service.findByIdAndDelete(id);
+    if (!deletedService) {
+      return res.status(404).json({ message: 'Service not found' });
+    }
+    res.json({ message: 'Service deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting service:', error);
+    if (error.name === 'CastError') {
+      return res.status(400).json({ message: 'Invalid service ID' });
+    }
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
 });
 
 module.exports = router;
