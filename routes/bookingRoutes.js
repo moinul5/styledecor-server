@@ -1,6 +1,7 @@
 const express = require('express');
 const verifyToken = require('../middleware/verifyToken');
 const verifyAdmin = require('../middleware/verifyAdmin');
+const Booking = require('../models/Booking');
 const router = express.Router();
 
 // GET /bookings - Get bookings (filtered by user email or all for admin)
@@ -15,10 +16,38 @@ router.get('/:id', verifyToken, async (req, res) => {
   res.json({ message: 'GET booking by ID - not yet implemented' });
 });
 
-// POST /bookings - Create a new booking
+// GET /user/:email - Get bookings for a specific user email
+router.get('/user/:email', verifyToken, async (req, res) => {
+  try {
+    const email = req.params.email;
+    if (req.decoded.email !== email) {
+      return res.status(403).json({ message: 'Forbidden access' });
+    }
+    const bookings = await Booking.find({ userEmail: email }).sort({ createdAt: -1 });
+    res.json(bookings);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching bookings', error: error.message });
+  }
+});
+
+// POST / - Create a new booking
 router.post('/', verifyToken, async (req, res) => {
-  // TODO: Implement create booking
-  res.json({ message: 'POST create booking - not yet implemented' });
+  try {
+    const { userEmail, userName, serviceId, serviceName, bookingDate, location, serviceMode } = req.body;
+    const newBooking = new Booking({
+      userEmail,
+      userName,
+      serviceId,
+      serviceName,
+      bookingDate,
+      location,
+      serviceMode
+    });
+    const savedBooking = await newBooking.save();
+    res.status(201).json(savedBooking);
+  } catch (error) {
+    res.status(500).json({ message: 'Error creating booking', error: error.message });
+  }
 });
 
 // PATCH /bookings/:id - Update booking status

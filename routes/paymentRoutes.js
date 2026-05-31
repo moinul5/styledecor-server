@@ -1,17 +1,49 @@
 const express = require('express');
 const verifyToken = require('../middleware/verifyToken');
-const router = express.Router();
-
-// POST /payments/create-payment-intent - Create Stripe payment intent
+const stripe = require('stripe')(process.env.STRIPE_SECRET);
+const Payment = require('../models/Payment');
+const Booking = require('../models/Booking');
+const router = express.Router();// POST /payments/create-payment-intent - Create Stripe payment intent
 router.post('/create-payment-intent', verifyToken, async (req, res) => {
-  // TODO: Implement Stripe payment intent creation
-  res.json({ message: 'POST create payment intent - not yet implemented' });
+  try {
+    const { price } = req.body;
+    if (!price) {
+      return res.status(400).json({ message: 'Price is required' });
+    }
+    const amount = parseInt(price * 100);
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: amount,
+      currency: 'usd',
+      payment_method_types: ['card']
+    });
+    res.json({ clientSecret: paymentIntent.client_secret });
+  } catch (error) {
+    res.status(500).json({ message: 'Error creating payment intent', error: error.message });
+  }
 });
 
 // POST /payments - Save payment record
 router.post('/', verifyToken, async (req, res) => {
-  // TODO: Implement save payment
-  res.json({ message: 'POST save payment - not yet implemented' });
+  try {
+    const { bookingId, transactionId, amount, paidBy } = req.body;
+    const payment = new Payment({
+      bookingId,
+      transactionId,
+      amount,
+      paidBy
+    });
+    const savedPayment = await payment.save();
+
+    // Update the corresponding Booking
+    await Booking.findByIdAndUpdate(bookingId, {
+      status: 'confirmed',
+      paymentStatus: 'paid'
+    });
+
+    res.status(201).json(savedPayment);
+  } catch (error) {
+    res.status(500).json({ message: 'Error saving payment', error: error.message });
+  }
 });
 
 // GET /payments - Get payment history
