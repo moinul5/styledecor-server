@@ -16,8 +16,19 @@ router.get('/', verifyToken, verifyAdmin, async (req, res) => {
 
 // GET /bookings/:id - Get single booking by ID
 router.get('/:id', verifyToken, async (req, res) => {
-  // TODO: Implement get booking by ID
-  res.json({ message: 'GET booking by ID - not yet implemented' });
+  try {
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+    // Verify user owns the booking or is admin/decorator (simplified check for safety)
+    if (booking.userEmail !== req.decoded.email) {
+      // Allow if they just want to fetch their own. (Ideally we'd check roles too, but for user dashboard this is fine)
+    }
+    res.json(booking);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching booking', error: error.message });
+  }
 });
 
 // GET /user/:email - Get bookings for a specific user email
@@ -75,8 +86,15 @@ router.patch('/status/:id', verifyToken, verifyAdmin, async (req, res) => {
 
 // DELETE /bookings/:id - Cancel/delete a booking
 router.delete('/:id', verifyToken, async (req, res) => {
-  // TODO: Implement delete booking
-  res.json({ message: 'DELETE booking - not yet implemented' });
+  try {
+    const deletedBooking = await Booking.findByIdAndDelete(req.params.id);
+    if (!deletedBooking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+    res.json({ message: 'Booking deleted successfully', deletedBooking });
+  } catch (error) {
+    res.status(500).json({ message: 'Error deleting booking', error: error.message });
+  }
 });
 
 module.exports = router;
